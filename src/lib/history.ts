@@ -37,7 +37,7 @@ export async function saveAnalysis(opts: {
 
   const ins = await supabase
     .from("analyses")
-    .insert({ user_id: opts.userId, image_path: path, result: opts.result, title })
+    .insert({ user_id: opts.userId, image_path: path, result: opts.result as never, title })
     .select()
     .single();
   if (ins.error) throw ins.error;
