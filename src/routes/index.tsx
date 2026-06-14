@@ -104,12 +104,27 @@ function Home() {
 
   const analyze = async () => {
     if (!imageDataUrl) return;
+    if (!user) {
+      toast.error("Please sign in to analyze scenes.");
+      navigate({ to: "/auth" });
+      return;
+    }
     setLoading(true);
     setResult(null);
     try {
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      if (!token) {
+        toast.error("Session expired. Please sign in again.");
+        navigate({ to: "/auth" });
+        return;
+      }
       const res = await fetch("/api/analyze", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ imageDataUrl }),
       });
       const data = (await res.json()) as AnalysisResult;
