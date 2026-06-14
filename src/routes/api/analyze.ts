@@ -63,7 +63,7 @@ Return ONLY valid JSON matching this exact schema:
   }
 }
 
-Be exhaustively descriptive. Each platform-optimized prompt should be 2-4 sentences tailored to that tool's syntax. The main_prompt must be cinematic natural language, 3-5 sentences. Character consistency guidelines should be specific, actionable instructions. Never include any text outside the JSON.`;
+Be exhaustively descriptive. Each platform-optimized prompt should be 2-4 sentences tailored to that tool's syntax. The main_prompt must be cinematic natural language, 3-5 sentences, and MUST embed character consistency notes directly within it (e.g., "keep her oval face, hazel eyes, and chest-length auburn hair identical in every frame"). Character consistency guidelines should be specific, actionable instructions. Never include any text outside the JSON.`;
 
 export const Route = createFileRoute("/api/analyze")({
   server: {

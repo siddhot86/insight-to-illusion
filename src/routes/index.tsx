@@ -259,6 +259,28 @@ function ResultView({
       </TabsList>
 
       <TabsContent value="prompt" className="space-y-5 mt-4">
+        <div className="flex justify-end">
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => {
+              const parts: string[] = [];
+              if (vp?.main_prompt) parts.push(`Main Prompt:\n${vp.main_prompt}`);
+              if (vp?.camera_movement) parts.push(`\nCamera Movement:\n${vp.camera_movement}`);
+              if (vp?.character_motion) parts.push(`\nCharacter Motion:\n${vp.character_motion}`);
+              if (vp?.lighting_continuity) parts.push(`\nLighting Continuity:\n${vp.lighting_continuity}`);
+              if (result.character_consistency_guidelines?.length) {
+                parts.push(
+                  `\nCharacter Consistency:\n${result.character_consistency_guidelines.map((g) => `- ${g}`).join("\n")}`
+                );
+              }
+              if (result.negative_prompt) parts.push(`\nNegative Prompt:\n${result.negative_prompt}`);
+              onCopy(parts.join("\n\n"), "All prompts copied");
+            }}
+          >
+            <Copy className="size-3.5 mr-1.5" /> Copy all prompts
+          </Button>
+        </div>
         <Section title="Main video prompt" icon={<Film className="size-4 text-primary" />}>
           <PromptBox text={String(vp?.main_prompt ?? "—")} onCopy={onCopy} />
         </Section>
