@@ -285,8 +285,14 @@ function Home() {
                         className="w-full h-full object-contain"
                       />
                     </div>
+                    <ToolPicker selected={selectedTools} onChange={setSelectedTools} />
                     <div className="flex gap-2">
-                      <Button onClick={analyze} disabled={loading} className="flex-1" size="lg">
+                      <Button
+                        onClick={analyze}
+                        disabled={loading || selectedTools.length === 0}
+                        className="flex-1"
+                        size="lg"
+                      >
                         {loading ? (
                           <>
                             <Loader2 className="size-4 mr-2 animate-spin" /> Analyzing scene…
