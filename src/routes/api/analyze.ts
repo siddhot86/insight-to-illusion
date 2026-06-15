@@ -140,9 +140,15 @@ export const Route = createFileRoute("/api/analyze")({
 
           // ---- Input validation ----
           const body = (await request.json().catch(() => null)) as
-            | { imageDataUrl?: unknown }
+            | { imageDataUrl?: unknown; tools?: unknown }
             | null;
           const imageDataUrl = body?.imageDataUrl;
+          const rawTools = Array.isArray(body?.tools) ? (body!.tools as unknown[]) : [];
+          const tools = rawTools.filter((t): t is ToolId =>
+            typeof t === "string" && (SUPPORTED_TOOLS as readonly string[]).includes(t),
+          );
+          const selectedTools: ToolId[] =
+            tools.length > 0 ? Array.from(new Set(tools)) : ["runway", "pika", "sora", "kling"];
           if (typeof imageDataUrl !== "string" || imageDataUrl.length === 0) {
             return Response.json({ error: "Missing image" }, { status: 400 });
           }
