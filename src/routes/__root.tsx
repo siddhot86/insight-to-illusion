@@ -77,14 +77,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "Cineprompt" },
+      { name: "description", content: "Scene Weaver analyzes images to generate AI video prompts for tools like Sora and Pika." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "Cineprompt" },
+      { property: "og:description", content: "Scene Weaver analyzes images to generate AI video prompts for tools like Sora and Pika." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Cineprompt" },
+      { name: "twitter:description", content: "Scene Weaver analyzes images to generate AI video prompts for tools like Sora and Pika." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/22903996-d65c-4e6a-baa6-de9b2d89a237/id-preview-61cd3726--becc6c24-0719-475a-b3fb-3d27a66d4067.lovable.app-1781469957505.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/22903996-d65c-4e6a-baa6-de9b2d89a237/id-preview-61cd3726--becc6c24-0719-475a-b3fb-3d27a66d4067.lovable.app-1781469957505.png" },
     ],
     links: [
       {
