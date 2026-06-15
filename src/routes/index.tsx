@@ -635,3 +635,67 @@ function ResultView({
     </Tabs>
   );
 }
+
+const VIDEO_TOOLS: { id: string; label: string }[] = [
+  { id: "runway", label: "Runway" },
+  { id: "pika", label: "Pika" },
+  { id: "sora", label: "Sora" },
+  { id: "kling", label: "Kling" },
+  { id: "veo", label: "Veo" },
+  { id: "grok", label: "Grok" },
+  { id: "seedance", label: "Seedance" },
+  { id: "luma", label: "Luma" },
+  { id: "hailuo", label: "Hailuo" },
+  { id: "wan", label: "Wan" },
+];
+
+function ToolPicker({
+  selected,
+  onChange,
+}: {
+  selected: string[];
+  onChange: (next: string[]) => void;
+}) {
+  const toggle = (id: string) => {
+    onChange(selected.includes(id) ? selected.filter((s) => s !== id) : [...selected, id]);
+  };
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-medium text-foreground/80">
+          Optimize prompts for{" "}
+          <span className="text-muted-foreground">({selected.length} selected)</span>
+        </p>
+        <button
+          type="button"
+          onClick={() =>
+            onChange(selected.length === VIDEO_TOOLS.length ? [] : VIDEO_TOOLS.map((t) => t.id))
+          }
+          className="text-xs text-primary hover:underline"
+        >
+          {selected.length === VIDEO_TOOLS.length ? "Clear all" : "Select all"}
+        </button>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {VIDEO_TOOLS.map((t) => {
+          const active = selected.includes(t.id);
+          return (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => toggle(t.id)}
+              className={
+                "px-3 py-1.5 rounded-full text-xs font-medium border transition " +
+                (active
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-background/40 text-foreground/70 border-border hover:border-primary/50")
+              }
+            >
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
