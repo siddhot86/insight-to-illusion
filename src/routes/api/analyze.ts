@@ -1,7 +1,47 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 
-const SYSTEM_PROMPT = `You are an expert cinematographer and AI video prompt engineer. Analyze the provided scene image with extreme detail and produce structured output for AI video generation tools (Runway, Pika, Sora, Kling, Veo, etc.).
+const SUPPORTED_TOOLS = [
+  "runway",
+  "pika",
+  "sora",
+  "kling",
+  "veo",
+  "grok",
+  "seedance",
+  "luma",
+  "hailuo",
+  "wan",
+] as const;
+type ToolId = (typeof SUPPORTED_TOOLS)[number];
+
+const TOOL_GUIDE: Record<ToolId, string> = {
+  runway:
+    "Runway Gen-3/Gen-4: concise cinematic sentences, emphasize camera verbs (dolly, push-in, orbit), explicit lens (e.g. 35mm), shot type, lighting. Avoid bullet lists.",
+  pika:
+    "Pika 1.x/2.0: short punchy comma-separated descriptors, motion intensity hints ('subtle motion', 'fast pan'), -camera and -motion style modifiers welcome.",
+  sora:
+    "OpenAI Sora: rich natural-language paragraph; narrative description of subject, environment, camera move, lighting, and time progression in a single coherent shot.",
+  kling:
+    "Kling 1.6/2.0: structured Subject + Action + Scene + Camera + Style. Include explicit camera trajectory and shot length cues.",
+  veo:
+    "Google Veo 3: descriptive paragraph with explicit cinematography (focal length, aperture, film stock), camera move, and ambient audio cues if relevant.",
+  grok:
+    "xAI Grok / Aurora video: direct declarative cinematic sentence; emphasize subject identity, action, environment, and a single clear camera move.",
+  seedance:
+    "ByteDance Seedance 1.0 Pro: vivid action-first prompt, strong motion verbs, explicit camera (handheld, tracking, crane), lighting and color tone in one paragraph.",
+  luma:
+    "Luma Dream Machine / Ray-2: cinematic natural language, mention 'cinematic', specify camera move and atmosphere; keep under 3 sentences.",
+  hailuo:
+    "MiniMax Hailuo 02: clear subject + action + environment + camera move sentence; supports a trailing [camera: ...] tag for explicit shot control.",
+  wan:
+    "Alibaba Wan 2.2: structured prompt with subject, action, scene, aesthetic style, and camera language; physics-aware motion descriptions perform best.",
+};
+
+function buildSystemPrompt(tools: ToolId[]): string {
+  const platformSchema = tools.map((t) => `    "${t}": string`).join(",\n");
+  const guidance = tools.map((t) => `- ${t}: ${TOOL_GUIDE[t]}`).join("\n");
+  return `You are an expert cinematographer and AI video prompt engineer. Analyze the provided scene image with extreme detail and produce structured output for the selected AI video generation tools.
 
 Return ONLY valid JSON matching this exact schema:
 {
@@ -57,14 +97,15 @@ Return ONLY valid JSON matching this exact schema:
     "anime": string
   },
   "platform_optimized": {
-    "runway": string,
-    "pika": string,
-    "sora": string,
-    "kling": string
+${platformSchema}
   }
 }
 
-Be exhaustively descriptive. Each platform-optimized prompt should be 2-4 sentences tailored to that tool's syntax. The main_prompt must be cinematic natural language, 3-5 sentences, and MUST embed character consistency notes directly within it (e.g., "keep her oval face, hazel eyes, and chest-length auburn hair identical in every frame"). Character consistency guidelines should be specific, actionable instructions. Never include any text outside the JSON.`;
+The "platform_optimized" object MUST contain EXACTLY these keys: ${tools.join(", ")}. Do not include any other platform keys. Tailor each prompt strictly to that tool's preferred syntax and strengths:
+${guidance}
+
+Each platform prompt should be 2-4 sentences (or the tool's preferred shape above). The main_prompt must be cinematic natural language, 3-5 sentences, and MUST embed character consistency notes directly within it. Never include any text outside the JSON.`;
+}
 
 // ~12 MB decoded cap on the image payload
 const MAX_DECODED_BYTES = 12 * 1024 * 1024;
