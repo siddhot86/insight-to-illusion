@@ -747,7 +747,79 @@ function ResultView({
   );
 }
 
+function ImageDrop({
+  value,
+  onPick,
+  readFile,
+  label,
+  compact,
+  onClear,
+}: {
+  value: string | null;
+  onPick: (file: File) => void | Promise<void>;
+  readFile: (file: File) => Promise<string | null>;
+  label: string;
+  compact?: boolean;
+  onClear?: () => void;
+}) {
+  void readFile;
+  const ref = useRef<HTMLInputElement>(null);
+  const aspect = compact ? "aspect-square" : "aspect-video";
+  return (
+    <div
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={(e) => {
+        e.preventDefault();
+        const f = e.dataTransfer.files?.[0];
+        if (f) onPick(f);
+      }}
+    >
+      <input
+        ref={ref}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => e.target.files?.[0] && onPick(e.target.files[0])}
+      />
+      {value ? (
+        <div className="space-y-2">
+          <div
+            className={`relative rounded-lg overflow-hidden border border-border/60 ${aspect} bg-muted`}
+          >
+            <img src={value} alt={label} className="w-full h-full object-contain" />
+          </div>
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">{label}</p>
+            <div className="flex gap-1">
+              <Button size="sm" variant="ghost" onClick={() => ref.current?.click()}>
+                Replace
+              </Button>
+              {onClear && (
+                <Button size="sm" variant="ghost" onClick={onClear}>
+                  <Trash2 className="size-3.5" />
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={() => ref.current?.click()}
+          className={`w-full ${aspect} rounded-lg border-2 border-dashed border-border hover:border-primary/60 hover:bg-primary/5 transition flex flex-col items-center justify-center gap-2 text-muted-foreground`}
+        >
+          <div className="size-10 rounded-full bg-primary/10 grid place-items-center">
+            <Upload className="size-4 text-primary" />
+          </div>
+          <p className="text-sm font-medium text-foreground">{label}</p>
+          {!compact && <p className="text-xs">PNG, JPG, WEBP up to 8MB</p>}
+        </button>
+      )}
+    </div>
+  );
+}
+
 const VIDEO_TOOLS: { id: string; label: string }[] = [
+
   { id: "runway", label: "Runway" },
   { id: "pika", label: "Pika" },
   { id: "sora", label: "Sora" },
