@@ -64,6 +64,9 @@ function Home() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
+  const [endFrame, setEndFrame] = useState<string | null>(null);
+  const [refImages, setRefImages] = useState<string[]>([]);
+  const [mode, setMode] = useState<"single" | "frames" | "refs">("single");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [view, setView] = useState<"new" | "history">("new");
@@ -76,6 +79,7 @@ function Home() {
     "kling",
   ]);
   const inputRef = useRef<HTMLInputElement>(null);
+
 
   const refreshHistory = useCallback(async () => {
     if (!user) return;
