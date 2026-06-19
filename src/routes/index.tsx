@@ -294,15 +294,7 @@ function Home() {
             </section>
 
             <div className="grid lg:grid-cols-2 gap-6">
-              <Card
-                className="p-6 glow-ring bg-card/60 backdrop-blur-sm border-border/60"
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  const f = e.dataTransfer.files?.[0];
-                  if (f) handleFile(f);
-                }}
-              >
+              <Card className="p-6 glow-ring bg-card/60 backdrop-blur-sm border-border/60">
                 <input
                   ref={inputRef}
                   type="file"
@@ -310,53 +302,138 @@ function Home() {
                   className="hidden"
                   onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
                 />
-                {imageDataUrl ? (
-                  <div className="space-y-4">
-                    <div className="relative rounded-lg overflow-hidden border border-border/60 aspect-video bg-muted">
-                      <img
-                        src={imageDataUrl}
-                        alt="Scene preview"
-                        className="w-full h-full object-contain"
+                <Tabs value={mode} onValueChange={(v) => setMode(v as typeof mode)} className="w-full">
+                  <TabsList className="grid grid-cols-3 w-full">
+                    <TabsTrigger value="single">Single scene</TabsTrigger>
+                    <TabsTrigger value="frames">Start / End</TabsTrigger>
+                    <TabsTrigger value="refs">Multi-reference</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="single" className="space-y-4 mt-4">
+                    <ImageDrop
+                      value={imageDataUrl}
+                      onPick={handleFile}
+                      readFile={readFile}
+                      label="Drop a scene image"
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="frames" className="space-y-4 mt-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <ImageDrop
+                        value={imageDataUrl}
+                        onPick={handleFile}
+                        readFile={readFile}
+                        label="Start frame"
+                        compact
+                      />
+                      <ImageDrop
+                        value={endFrame}
+                        onPick={async (f) => {
+                          const url = await readFile(f);
+                          if (url) {
+                            setEndFrame(url);
+                            setResult(null);
+                          }
+                        }}
+                        readFile={readFile}
+                        label="End frame"
+                        compact
+                        onClear={() => setEndFrame(null)}
                       />
                     </div>
-                    <ToolPicker selected={selectedTools} onChange={setSelectedTools} />
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={analyze}
-                        disabled={loading || selectedTools.length === 0}
-                        className="flex-1"
-                        size="lg"
-                      >
-                        {loading ? (
-                          <>
-                            <Loader2 className="size-4 mr-2 animate-spin" /> Analyzing scene…
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="size-4 mr-2" /> Generate video prompts
-                          </>
+                    <p className="text-xs text-muted-foreground">
+                      The video will be prompted to begin at the start frame and land on the end frame.
+                    </p>
+                  </TabsContent>
+
+                  <TabsContent value="refs" className="space-y-4 mt-4">
+                    <ImageDrop
+                      value={imageDataUrl}
+                      onPick={handleFile}
+                      readFile={readFile}
+                      label="Primary scene"
+                    />
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium text-foreground/80">
+                        Reference images{" "}
+                        <span className="text-muted-foreground">
+                          ({refImages.length}/5 · characters, style, wardrobe)
+                        </span>
+                      </p>
+                      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                        {refImages.map((src, i) => (
+                          <div
+                            key={i}
+                            className="relative aspect-square rounded-md overflow-hidden border border-border/60 group"
+                          >
+                            <img src={src} alt="" className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setRefImages((arr) => arr.filter((_, idx) => idx !== i))
+                              }
+                              className="absolute top-1 right-1 size-5 rounded-full bg-background/80 text-foreground grid place-items-center opacity-0 group-hover:opacity-100 transition"
+                              aria-label="Remove reference"
+                            >
+                              <Trash2 className="size-3" />
+                            </button>
+                          </div>
+                        ))}
+                        {refImages.length < 5 && (
+                          <label className="aspect-square rounded-md border-2 border-dashed border-border hover:border-primary/60 grid place-items-center cursor-pointer text-muted-foreground">
+                            <Upload className="size-5" />
+                            <input
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              className="hidden"
+                              onChange={async (e) => {
+                                const files = Array.from(e.target.files ?? []);
+                                const remaining = 5 - refImages.length;
+                                const next: string[] = [];
+                                for (const f of files.slice(0, remaining)) {
+                                  const url = await readFile(f);
+                                  if (url) next.push(url);
+                                }
+                                if (next.length) setRefImages((arr) => [...arr, ...next]);
+                                e.target.value = "";
+                              }}
+                            />
+                          </label>
                         )}
-                      </Button>
-                      <Button variant="secondary" onClick={() => inputRef.current?.click()}>
-                        Replace
-                      </Button>
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => inputRef.current?.click()}
-                    className="w-full aspect-video rounded-lg border-2 border-dashed border-border hover:border-primary/60 hover:bg-primary/5 transition flex flex-col items-center justify-center gap-3 text-muted-foreground"
+                  </TabsContent>
+                </Tabs>
+
+                <div className="mt-5 space-y-4">
+                  <ToolPicker selected={selectedTools} onChange={setSelectedTools} />
+                  <Button
+                    onClick={analyze}
+                    disabled={
+                      loading ||
+                      selectedTools.length === 0 ||
+                      !imageDataUrl ||
+                      (mode === "frames" && !endFrame) ||
+                      (mode === "refs" && refImages.length === 0)
+                    }
+                    className="w-full"
+                    size="lg"
                   >
-                    <div className="size-14 rounded-full bg-primary/10 grid place-items-center">
-                      <Upload className="size-6 text-primary" />
-                    </div>
-                    <div className="text-center">
-                      <p className="font-medium text-foreground">Drop a scene image</p>
-                      <p className="text-sm">or click to browse · PNG, JPG, WEBP up to 8MB</p>
-                    </div>
-                  </button>
-                )}
+                    {loading ? (
+                      <>
+                        <Loader2 className="size-4 mr-2 animate-spin" /> Analyzing scene…
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="size-4 mr-2" /> Generate video prompts
+                      </>
+                    )}
+                  </Button>
+                </div>
               </Card>
+
 
               <Card className="p-6 bg-card/60 backdrop-blur-sm border-border/60 min-h-[400px]">
                 {!result && !loading && (
