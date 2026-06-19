@@ -97,23 +97,46 @@ function Home() {
     if (user && view === "history") refreshHistory();
   }, [user, view, refreshHistory]);
 
-  const handleFile = useCallback((file: File) => {
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please upload an image file");
-      return;
-    }
-    if (file.size > 8 * 1024 * 1024) {
-      toast.error("Image must be under 8MB");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => setImageDataUrl(reader.result as string);
-    reader.readAsDataURL(file);
-    setResult(null);
+  const readFile = useCallback((file: File): Promise<string | null> => {
+    return new Promise((resolve) => {
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please upload an image file");
+        resolve(null);
+        return;
+      }
+      if (file.size > 8 * 1024 * 1024) {
+        toast.error("Image must be under 8MB");
+        resolve(null);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.readAsDataURL(file);
+    });
   }, []);
+
+  const handleFile = useCallback(
+    async (file: File) => {
+      const url = await readFile(file);
+      if (url) {
+        setImageDataUrl(url);
+        setResult(null);
+      }
+    },
+    [readFile],
+  );
 
   const analyze = async () => {
     if (!imageDataUrl) return;
+    if (mode === "frames" && !endFrame) {
+      toast.error("Please upload an end frame");
+      return;
+    }
+    if (mode === "refs" && refImages.length === 0) {
+      toast.error("Please upload at least one reference image");
+      return;
+    }
+
     if (!user) {
       toast.error("Please sign in to analyze scenes.");
       navigate({ to: "/auth" });
