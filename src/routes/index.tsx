@@ -64,6 +64,9 @@ function Home() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
+  const [endFrame, setEndFrame] = useState<string | null>(null);
+  const [refImages, setRefImages] = useState<string[]>([]);
+  const [mode, setMode] = useState<"single" | "frames" | "refs">("single");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [view, setView] = useState<"new" | "history">("new");
@@ -76,6 +79,7 @@ function Home() {
     "kling",
   ]);
   const inputRef = useRef<HTMLInputElement>(null);
+
 
   const refreshHistory = useCallback(async () => {
     if (!user) return;
@@ -93,23 +97,46 @@ function Home() {
     if (user && view === "history") refreshHistory();
   }, [user, view, refreshHistory]);
 
-  const handleFile = useCallback((file: File) => {
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please upload an image file");
-      return;
-    }
-    if (file.size > 8 * 1024 * 1024) {
-      toast.error("Image must be under 8MB");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => setImageDataUrl(reader.result as string);
-    reader.readAsDataURL(file);
-    setResult(null);
+  const readFile = useCallback((file: File): Promise<string | null> => {
+    return new Promise((resolve) => {
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please upload an image file");
+        resolve(null);
+        return;
+      }
+      if (file.size > 8 * 1024 * 1024) {
+        toast.error("Image must be under 8MB");
+        resolve(null);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.readAsDataURL(file);
+    });
   }, []);
+
+  const handleFile = useCallback(
+    async (file: File) => {
+      const url = await readFile(file);
+      if (url) {
+        setImageDataUrl(url);
+        setResult(null);
+      }
+    },
+    [readFile],
+  );
 
   const analyze = async () => {
     if (!imageDataUrl) return;
+    if (mode === "frames" && !endFrame) {
+      toast.error("Please upload an end frame");
+      return;
+    }
+    if (mode === "refs" && refImages.length === 0) {
+      toast.error("Please upload at least one reference image");
+      return;
+    }
+
     if (!user) {
       toast.error("Please sign in to analyze scenes.");
       navigate({ to: "/auth" });
@@ -131,7 +158,14 @@ function Home() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ imageDataUrl, tools: selectedTools }),
+        body: JSON.stringify({
+          imageDataUrl,
+          endFrame: mode === "frames" ? endFrame : undefined,
+          referenceImages: mode === "refs" ? refImages : undefined,
+          mode,
+          tools: selectedTools,
+        }),
+
       });
       const data = (await res.json()) as AnalysisResult;
       if (!res.ok || data.error) {
@@ -260,15 +294,7 @@ function Home() {
             </section>
 
             <div className="grid lg:grid-cols-2 gap-6">
-              <Card
-                className="p-6 glow-ring bg-card/60 backdrop-blur-sm border-border/60"
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  const f = e.dataTransfer.files?.[0];
-                  if (f) handleFile(f);
-                }}
-              >
+              <Card className="p-6 glow-ring bg-card/60 backdrop-blur-sm border-border/60">
                 <input
                   ref={inputRef}
                   type="file"
@@ -276,53 +302,138 @@ function Home() {
                   className="hidden"
                   onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
                 />
-                {imageDataUrl ? (
-                  <div className="space-y-4">
-                    <div className="relative rounded-lg overflow-hidden border border-border/60 aspect-video bg-muted">
-                      <img
-                        src={imageDataUrl}
-                        alt="Scene preview"
-                        className="w-full h-full object-contain"
+                <Tabs value={mode} onValueChange={(v) => setMode(v as typeof mode)} className="w-full">
+                  <TabsList className="grid grid-cols-3 w-full">
+                    <TabsTrigger value="single">Single scene</TabsTrigger>
+                    <TabsTrigger value="frames">Start / End</TabsTrigger>
+                    <TabsTrigger value="refs">Multi-reference</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="single" className="space-y-4 mt-4">
+                    <ImageDrop
+                      value={imageDataUrl}
+                      onPick={handleFile}
+                      readFile={readFile}
+                      label="Drop a scene image"
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="frames" className="space-y-4 mt-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <ImageDrop
+                        value={imageDataUrl}
+                        onPick={handleFile}
+                        readFile={readFile}
+                        label="Start frame"
+                        compact
+                      />
+                      <ImageDrop
+                        value={endFrame}
+                        onPick={async (f) => {
+                          const url = await readFile(f);
+                          if (url) {
+                            setEndFrame(url);
+                            setResult(null);
+                          }
+                        }}
+                        readFile={readFile}
+                        label="End frame"
+                        compact
+                        onClear={() => setEndFrame(null)}
                       />
                     </div>
-                    <ToolPicker selected={selectedTools} onChange={setSelectedTools} />
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={analyze}
-                        disabled={loading || selectedTools.length === 0}
-                        className="flex-1"
-                        size="lg"
-                      >
-                        {loading ? (
-                          <>
-                            <Loader2 className="size-4 mr-2 animate-spin" /> Analyzing scene…
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="size-4 mr-2" /> Generate video prompts
-                          </>
+                    <p className="text-xs text-muted-foreground">
+                      The video will be prompted to begin at the start frame and land on the end frame.
+                    </p>
+                  </TabsContent>
+
+                  <TabsContent value="refs" className="space-y-4 mt-4">
+                    <ImageDrop
+                      value={imageDataUrl}
+                      onPick={handleFile}
+                      readFile={readFile}
+                      label="Primary scene"
+                    />
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium text-foreground/80">
+                        Reference images{" "}
+                        <span className="text-muted-foreground">
+                          ({refImages.length}/5 · characters, style, wardrobe)
+                        </span>
+                      </p>
+                      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                        {refImages.map((src, i) => (
+                          <div
+                            key={i}
+                            className="relative aspect-square rounded-md overflow-hidden border border-border/60 group"
+                          >
+                            <img src={src} alt="" className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setRefImages((arr) => arr.filter((_, idx) => idx !== i))
+                              }
+                              className="absolute top-1 right-1 size-5 rounded-full bg-background/80 text-foreground grid place-items-center opacity-0 group-hover:opacity-100 transition"
+                              aria-label="Remove reference"
+                            >
+                              <Trash2 className="size-3" />
+                            </button>
+                          </div>
+                        ))}
+                        {refImages.length < 5 && (
+                          <label className="aspect-square rounded-md border-2 border-dashed border-border hover:border-primary/60 grid place-items-center cursor-pointer text-muted-foreground">
+                            <Upload className="size-5" />
+                            <input
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              className="hidden"
+                              onChange={async (e) => {
+                                const files = Array.from(e.target.files ?? []);
+                                const remaining = 5 - refImages.length;
+                                const next: string[] = [];
+                                for (const f of files.slice(0, remaining)) {
+                                  const url = await readFile(f);
+                                  if (url) next.push(url);
+                                }
+                                if (next.length) setRefImages((arr) => [...arr, ...next]);
+                                e.target.value = "";
+                              }}
+                            />
+                          </label>
                         )}
-                      </Button>
-                      <Button variant="secondary" onClick={() => inputRef.current?.click()}>
-                        Replace
-                      </Button>
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => inputRef.current?.click()}
-                    className="w-full aspect-video rounded-lg border-2 border-dashed border-border hover:border-primary/60 hover:bg-primary/5 transition flex flex-col items-center justify-center gap-3 text-muted-foreground"
+                  </TabsContent>
+                </Tabs>
+
+                <div className="mt-5 space-y-4">
+                  <ToolPicker selected={selectedTools} onChange={setSelectedTools} />
+                  <Button
+                    onClick={analyze}
+                    disabled={
+                      loading ||
+                      selectedTools.length === 0 ||
+                      !imageDataUrl ||
+                      (mode === "frames" && !endFrame) ||
+                      (mode === "refs" && refImages.length === 0)
+                    }
+                    className="w-full"
+                    size="lg"
                   >
-                    <div className="size-14 rounded-full bg-primary/10 grid place-items-center">
-                      <Upload className="size-6 text-primary" />
-                    </div>
-                    <div className="text-center">
-                      <p className="font-medium text-foreground">Drop a scene image</p>
-                      <p className="text-sm">or click to browse · PNG, JPG, WEBP up to 8MB</p>
-                    </div>
-                  </button>
-                )}
+                    {loading ? (
+                      <>
+                        <Loader2 className="size-4 mr-2 animate-spin" /> Analyzing scene…
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="size-4 mr-2" /> Generate video prompts
+                      </>
+                    )}
+                  </Button>
+                </div>
               </Card>
+
 
               <Card className="p-6 bg-card/60 backdrop-blur-sm border-border/60 min-h-[400px]">
                 {!result && !loading && (
@@ -636,7 +747,79 @@ function ResultView({
   );
 }
 
+function ImageDrop({
+  value,
+  onPick,
+  readFile,
+  label,
+  compact,
+  onClear,
+}: {
+  value: string | null;
+  onPick: (file: File) => void | Promise<void>;
+  readFile: (file: File) => Promise<string | null>;
+  label: string;
+  compact?: boolean;
+  onClear?: () => void;
+}) {
+  void readFile;
+  const ref = useRef<HTMLInputElement>(null);
+  const aspect = compact ? "aspect-square" : "aspect-video";
+  return (
+    <div
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={(e) => {
+        e.preventDefault();
+        const f = e.dataTransfer.files?.[0];
+        if (f) onPick(f);
+      }}
+    >
+      <input
+        ref={ref}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => e.target.files?.[0] && onPick(e.target.files[0])}
+      />
+      {value ? (
+        <div className="space-y-2">
+          <div
+            className={`relative rounded-lg overflow-hidden border border-border/60 ${aspect} bg-muted`}
+          >
+            <img src={value} alt={label} className="w-full h-full object-contain" />
+          </div>
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">{label}</p>
+            <div className="flex gap-1">
+              <Button size="sm" variant="ghost" onClick={() => ref.current?.click()}>
+                Replace
+              </Button>
+              {onClear && (
+                <Button size="sm" variant="ghost" onClick={onClear}>
+                  <Trash2 className="size-3.5" />
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={() => ref.current?.click()}
+          className={`w-full ${aspect} rounded-lg border-2 border-dashed border-border hover:border-primary/60 hover:bg-primary/5 transition flex flex-col items-center justify-center gap-2 text-muted-foreground`}
+        >
+          <div className="size-10 rounded-full bg-primary/10 grid place-items-center">
+            <Upload className="size-4 text-primary" />
+          </div>
+          <p className="text-sm font-medium text-foreground">{label}</p>
+          {!compact && <p className="text-xs">PNG, JPG, WEBP up to 8MB</p>}
+        </button>
+      )}
+    </div>
+  );
+}
+
 const VIDEO_TOOLS: { id: string; label: string }[] = [
+
   { id: "runway", label: "Runway" },
   { id: "pika", label: "Pika" },
   { id: "sora", label: "Sora" },

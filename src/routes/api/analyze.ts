@@ -38,10 +38,20 @@ const TOOL_GUIDE: Record<ToolId, string> = {
     "Alibaba Wan 2.2: structured prompt with subject, action, scene, aesthetic style, and camera language; physics-aware motion descriptions perform best.",
 };
 
-function buildSystemPrompt(tools: ToolId[]): string {
+function buildSystemPrompt(
+  tools: ToolId[],
+  mode: "single" | "frames" | "refs",
+  refCount: number,
+): string {
   const platformSchema = tools.map((t) => `    "${t}": string`).join(",\n");
   const guidance = tools.map((t) => `- ${t}: ${TOOL_GUIDE[t]}`).join("\n");
-  return `You are an expert cinematographer and AI video prompt engineer. Analyze the provided scene image with extreme detail and produce structured output for the selected AI video generation tools.
+  const modeBlock =
+    mode === "frames"
+      ? `\n\nFRAME INTERPOLATION MODE: You have been given TWO images — the FIRST image is the START frame and the SECOND image is the END frame of the video. The main_prompt and every platform_optimized prompt MUST describe a single continuous shot that begins exactly at the start frame and lands exactly on the end frame. Explicitly describe the visual transformation, camera move, subject motion, and lighting evolution that take the scene from start to end. Add a "transition" string inside video_prompt summarizing the start→end change.`
+      : mode === "refs"
+        ? `\n\nMULTI-REFERENCE MODE: The FIRST image is the primary scene. The following ${refCount} image(s) are REFERENCE images for character likeness, style, wardrobe, location, or props that MUST remain consistent. Fuse identifying details from the references into character descriptions and character_consistency_guidelines. Every prompt must explicitly preserve these references. Add a "reference_notes" string inside video_prompt listing what each reference contributes.`
+        : "";
+  return `You are an expert cinematographer and AI video prompt engineer. Analyze the provided scene image(s) with extreme detail and produce structured output for the selected AI video generation tools.${modeBlock}
 
 Return ONLY valid JSON matching this exact schema:
 {
@@ -140,7 +150,13 @@ export const Route = createFileRoute("/api/analyze")({
 
           // ---- Input validation ----
           const body = (await request.json().catch(() => null)) as
-            | { imageDataUrl?: unknown; tools?: unknown }
+            | {
+                imageDataUrl?: unknown;
+                endFrame?: unknown;
+                referenceImages?: unknown;
+                mode?: unknown;
+                tools?: unknown;
+              }
             | null;
           const imageDataUrl = body?.imageDataUrl;
           const rawTools = Array.isArray(body?.tools) ? (body!.tools as unknown[]) : [];
@@ -149,31 +165,77 @@ export const Route = createFileRoute("/api/analyze")({
           );
           const selectedTools: ToolId[] =
             tools.length > 0 ? Array.from(new Set(tools)) : ["runway", "pika", "sora", "kling"];
-          if (typeof imageDataUrl !== "string" || imageDataUrl.length === 0) {
-            return Response.json({ error: "Missing image" }, { status: 400 });
+          const mode: "single" | "frames" | "refs" =
+            body?.mode === "frames" || body?.mode === "refs" ? body.mode : "single";
+
+          const validateImage = (val: unknown): string | { error: string; status: number } => {
+            if (typeof val !== "string" || val.length === 0)
+              return { error: "Missing image", status: 400 };
+            const m = val.match(DATA_URI_RE);
+            if (!m)
+              return {
+                error: "Image must be a base64 data URI (data:image/...;base64,...)",
+                status: 400,
+              };
+            const b = m[2];
+            const pad = b.endsWith("==") ? 2 : b.endsWith("=") ? 1 : 0;
+            const dec = Math.floor((b.length * 3) / 4) - pad;
+            if (dec > MAX_DECODED_BYTES)
+              return { error: "Image too large. Maximum 12 MB.", status: 413 };
+            return val;
+          };
+
+          const primary = validateImage(imageDataUrl);
+          if (typeof primary !== "string")
+            return Response.json({ error: primary.error }, { status: primary.status });
+
+          let endFrame: string | null = null;
+          if (mode === "frames") {
+            const r = validateImage(body?.endFrame);
+            if (typeof r !== "string")
+              return Response.json(
+                { error: `End frame: ${r.error}` },
+                { status: r.status },
+              );
+            endFrame = r;
           }
-          const match = imageDataUrl.match(DATA_URI_RE);
-          if (!match) {
-            return Response.json(
-              { error: "Image must be a base64 data URI (data:image/...;base64,...)" },
-              { status: 400 },
-            );
-          }
-          const b64 = match[2];
-          // base64 decoded length = floor(len * 3 / 4) - padding
-          const padding = b64.endsWith("==") ? 2 : b64.endsWith("=") ? 1 : 0;
-          const decodedBytes = Math.floor((b64.length * 3) / 4) - padding;
-          if (decodedBytes > MAX_DECODED_BYTES) {
-            return Response.json(
-              { error: "Image too large. Maximum 12 MB." },
-              { status: 413 },
-            );
+
+          const referenceImages: string[] = [];
+          if (mode === "refs") {
+            const rawRefs = Array.isArray(body?.referenceImages)
+              ? (body!.referenceImages as unknown[]).slice(0, 5)
+              : [];
+            for (const ref of rawRefs) {
+              const r = validateImage(ref);
+              if (typeof r !== "string")
+                return Response.json(
+                  { error: `Reference image: ${r.error}` },
+                  { status: r.status },
+                );
+              referenceImages.push(r);
+            }
           }
 
           const key = process.env.LOVABLE_API_KEY;
           if (!key) {
             return Response.json({ error: "AI not configured" }, { status: 500 });
           }
+
+          const userContent: Array<Record<string, unknown>> = [
+            {
+              type: "text",
+              text:
+                mode === "frames"
+                  ? "Two images follow: the START frame, then the END frame of the video. Produce the structured video prompt JSON describing the transition."
+                  : mode === "refs"
+                    ? `The first image is the primary scene. The next ${referenceImages.length} image(s) are references that must be preserved. Produce the structured video prompt JSON.`
+                    : "Analyze this scene image and produce the structured video prompt JSON.",
+            },
+            { type: "image_url", image_url: { url: primary } },
+          ];
+          if (endFrame) userContent.push({ type: "image_url", image_url: { url: endFrame } });
+          for (const ref of referenceImages)
+            userContent.push({ type: "image_url", image_url: { url: ref } });
 
           const upstream = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
             method: "POST",
@@ -184,21 +246,16 @@ export const Route = createFileRoute("/api/analyze")({
             body: JSON.stringify({
               model: "google/gemini-3-flash-preview",
               messages: [
-                { role: "system", content: buildSystemPrompt(selectedTools) },
                 {
-                  role: "user",
-                  content: [
-                    {
-                      type: "text",
-                      text: "Analyze this scene image and produce the structured video prompt JSON.",
-                    },
-                    { type: "image_url", image_url: { url: imageDataUrl } },
-                  ],
+                  role: "system",
+                  content: buildSystemPrompt(selectedTools, mode, referenceImages.length),
                 },
+                { role: "user", content: userContent },
               ],
               response_format: { type: "json_object" },
             }),
           });
+
 
           if (!upstream.ok) {
             const text = await upstream.text().catch(() => "");
