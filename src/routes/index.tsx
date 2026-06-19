@@ -158,7 +158,14 @@ function Home() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ imageDataUrl, tools: selectedTools }),
+        body: JSON.stringify({
+          imageDataUrl,
+          endFrame: mode === "frames" ? endFrame : undefined,
+          referenceImages: mode === "refs" ? refImages : undefined,
+          mode,
+          tools: selectedTools,
+        }),
+
       });
       const data = (await res.json()) as AnalysisResult;
       if (!res.ok || data.error) {
