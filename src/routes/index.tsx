@@ -167,6 +167,10 @@ function Home() {
           referenceImages: mode === "refs" ? refImages : undefined,
           mode,
           tools: selectedTools,
+          interpolation:
+            mode === "frames"
+              ? { strength: interpStrength, crossfade: crossfadePct }
+              : undefined,
         }),
 
       });
