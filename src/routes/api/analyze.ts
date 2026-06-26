@@ -42,9 +42,16 @@ function buildSystemPrompt(
   tools: ToolId[],
   mode: "single" | "frames" | "refs",
   refCount: number,
+  interp?: { strength: number; crossfade: number },
 ): string {
   const platformSchema = tools.map((t) => `    "${t}": string`).join(",\n");
   const guidance = tools.map((t) => `- ${t}: ${TOOL_GUIDE[t]}`).join("\n");
+  const interpLine = interp
+    ? `\nInterpolation strength: ${interp.strength}/100 (0 = hold start then snap, 50 = smooth morph preserving identity, 100 = aggressive continuous warp). Crossfade timing: ${interp.crossfade}% of shot duration (0 = hard cut at midpoint, 25 = brief late blend, 50 = balanced crossfade through the middle, 100 = blend across the whole shot). Reflect both values in the camera_movement, character_motion, lighting_continuity, transition, and every platform_optimized prompt — use concrete language like "slow morph", "hard cut", "long ${interp.crossfade}% crossfade", "${interp.strength}% interpolation blend".`
+    : "";
+  const modeBlock =
+    mode === "frames"
+      ? `\n\nFRAME INTERPOLATION MODE: You have been given TWO images — the FIRST image is the START frame and the SECOND image is the END frame of the video. The main_prompt and every platform_optimized prompt MUST describe a single continuous shot that begins exactly at the start frame and lands exactly on the end frame. Explicitly describe the visual transformation, camera move, subject motion, and lighting evolution that take the scene from start to end. Add a "transition" string inside video_prompt summarizing the start→end change.${interpLine}`
   const modeBlock =
     mode === "frames"
       ? `\n\nFRAME INTERPOLATION MODE: You have been given TWO images — the FIRST image is the START frame and the SECOND image is the END frame of the video. The main_prompt and every platform_optimized prompt MUST describe a single continuous shot that begins exactly at the start frame and lands exactly on the end frame. Explicitly describe the visual transformation, camera move, subject motion, and lighting evolution that take the scene from start to end. Add a "transition" string inside video_prompt summarizing the start→end change.`
