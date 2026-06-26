@@ -75,12 +75,7 @@ function Home() {
   const [view, setView] = useState<"new" | "history">("new");
   const [history, setHistory] = useState<HistoryRow[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [selectedTools, setSelectedTools] = useState<string[]>([
-    "runway",
-    "pika",
-    "sora",
-    "kling",
-  ]);
+  const [selectedTools, setSelectedTools] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
 
