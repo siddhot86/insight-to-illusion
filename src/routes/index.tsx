@@ -349,6 +349,60 @@ function Home() {
                         onClear={() => setEndFrame(null)}
                       />
                     </div>
+                    <div className="grid sm:grid-cols-2 gap-4 pt-1">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-xs">
+                          <label className="font-medium text-foreground/80">
+                            Interpolation strength
+                          </label>
+                          <span className="text-muted-foreground tabular-nums">
+                            {interpStrength}%
+                          </span>
+                        </div>
+                        <Slider
+                          value={[interpStrength]}
+                          onValueChange={(v) => setInterpStrength(v[0] ?? 0)}
+                          min={0}
+                          max={100}
+                          step={5}
+                        />
+                        <p className="text-[11px] text-muted-foreground">
+                          {interpStrength < 25
+                            ? "Hold start, snap to end (cut-like)"
+                            : interpStrength < 60
+                              ? "Gentle morph, preserves identity"
+                              : interpStrength < 85
+                                ? "Smooth continuous motion"
+                                : "Aggressive morph between frames"}
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-xs">
+                          <label className="font-medium text-foreground/80">
+                            Crossfade timing
+                          </label>
+                          <span className="text-muted-foreground tabular-nums">
+                            {crossfadePct}% of shot
+                          </span>
+                        </div>
+                        <Slider
+                          value={[crossfadePct]}
+                          onValueChange={(v) => setCrossfadePct(v[0] ?? 0)}
+                          min={0}
+                          max={100}
+                          step={5}
+                        />
+                        <p className="text-[11px] text-muted-foreground">
+                          {crossfadePct === 0
+                            ? "Hard cut at the midpoint"
+                            : crossfadePct < 30
+                              ? "Late, brief blend near the end"
+                              : crossfadePct < 70
+                                ? "Balanced crossfade through the middle"
+                                : "Long crossfade across most of the shot"}
+                        </p>
+                      </div>
+                    </div>
                     <p className="text-xs text-muted-foreground">
                       The video will be prompted to begin at the start frame and land on the end frame.
                     </p>
