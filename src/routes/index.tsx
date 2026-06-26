@@ -539,6 +539,11 @@ function Home() {
                         )}
                       </div>
                     </div>
+                    <MotionConfig
+                      sectionLabel="Multi-reference"
+                      value={motionByMode.refs}
+                      onChange={(v) => setMotion("refs", v)}
+                    />
                   </TabsContent>
                 </Tabs>
 
