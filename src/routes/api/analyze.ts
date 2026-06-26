@@ -42,12 +42,16 @@ function buildSystemPrompt(
   tools: ToolId[],
   mode: "single" | "frames" | "refs",
   refCount: number,
+  interp?: { strength: number; crossfade: number },
 ): string {
   const platformSchema = tools.map((t) => `    "${t}": string`).join(",\n");
   const guidance = tools.map((t) => `- ${t}: ${TOOL_GUIDE[t]}`).join("\n");
+  const interpLine = interp
+    ? `\nInterpolation strength: ${interp.strength}/100 (0 = hold start then snap, 50 = smooth morph preserving identity, 100 = aggressive continuous warp). Crossfade timing: ${interp.crossfade}% of shot duration (0 = hard cut at midpoint, 25 = brief late blend, 50 = balanced crossfade through the middle, 100 = blend across the whole shot). Reflect both values in the camera_movement, character_motion, lighting_continuity, transition, and every platform_optimized prompt — use concrete language like "slow morph", "hard cut", "long ${interp.crossfade}% crossfade", "${interp.strength}% interpolation blend".`
+    : "";
   const modeBlock =
     mode === "frames"
-      ? `\n\nFRAME INTERPOLATION MODE: You have been given TWO images — the FIRST image is the START frame and the SECOND image is the END frame of the video. The main_prompt and every platform_optimized prompt MUST describe a single continuous shot that begins exactly at the start frame and lands exactly on the end frame. Explicitly describe the visual transformation, camera move, subject motion, and lighting evolution that take the scene from start to end. Add a "transition" string inside video_prompt summarizing the start→end change.`
+      ? `\n\nFRAME INTERPOLATION MODE: You have been given TWO images — the FIRST image is the START frame and the SECOND image is the END frame of the video. The main_prompt and every platform_optimized prompt MUST describe a single continuous shot that begins exactly at the start frame and lands exactly on the end frame. Explicitly describe the visual transformation, camera move, subject motion, and lighting evolution that take the scene from start to end. Add a "transition" string inside video_prompt summarizing the start→end change.${interpLine}`
       : mode === "refs"
         ? `\n\nMULTI-REFERENCE MODE: The FIRST image is the primary scene. The following ${refCount} image(s) are REFERENCE images for character likeness, style, wardrobe, location, or props that MUST remain consistent. Fuse identifying details from the references into character descriptions and character_consistency_guidelines. Every prompt must explicitly preserve these references. Add a "reference_notes" string inside video_prompt listing what each reference contributes.`
         : "";
@@ -156,6 +160,7 @@ export const Route = createFileRoute("/api/analyze")({
                 referenceImages?: unknown;
                 mode?: unknown;
                 tools?: unknown;
+                interpolation?: unknown;
               }
             | null;
           const imageDataUrl = body?.imageDataUrl;
@@ -167,6 +172,21 @@ export const Route = createFileRoute("/api/analyze")({
             tools.length > 0 ? Array.from(new Set(tools)) : ["runway", "pika", "sora", "kling"];
           const mode: "single" | "frames" | "refs" =
             body?.mode === "frames" || body?.mode === "refs" ? body.mode : "single";
+          const clamp = (n: unknown, d: number) => {
+            const v = typeof n === "number" && Number.isFinite(n) ? n : d;
+            return Math.max(0, Math.min(100, Math.round(v)));
+          };
+          const rawInterp =
+            body?.interpolation && typeof body.interpolation === "object"
+              ? (body.interpolation as { strength?: unknown; crossfade?: unknown })
+              : null;
+          const interpolation =
+            mode === "frames"
+              ? {
+                  strength: clamp(rawInterp?.strength, 60),
+                  crossfade: clamp(rawInterp?.crossfade, 25),
+                }
+              : undefined;
 
           const validateImage = (val: unknown): string | { error: string; status: number } => {
             if (typeof val !== "string" || val.length === 0)
@@ -248,7 +268,7 @@ export const Route = createFileRoute("/api/analyze")({
               messages: [
                 {
                   role: "system",
-                  content: buildSystemPrompt(selectedTools, mode, referenceImages.length),
+                  content: buildSystemPrompt(selectedTools, mode, referenceImages.length, interpolation),
                 },
                 { role: "user", content: userContent },
               ],
