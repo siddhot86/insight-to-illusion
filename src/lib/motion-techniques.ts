@@ -40,7 +40,7 @@ export const EASING_PRESETS = [
   { id: "cubic-bezier(0.22, 1, 0.36, 1)", label: "Custom Bezier (cinematic)" },
 ] as const;
 
-const dir = {
+const dir: Record<string, DirectionOption[]> = {
   lr: [
     { id: "left", label: "Left" },
     { id: "right", label: "Right" },
@@ -65,7 +65,7 @@ const dir = {
     { id: "cw", label: "Clockwise" },
     { id: "ccw", label: "Counter-clockwise" },
   ],
-} as const;
+};
 
 export const MOTION_TECHNIQUES: MotionTechnique[] = [
   // Camera
