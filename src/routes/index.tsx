@@ -29,6 +29,12 @@ import {
   saveAnalysis,
   type HistoryRow,
 } from "@/lib/history";
+import { MotionConfig } from "@/components/motion-config";
+import {
+  DEFAULT_MOTION,
+  describeMotion,
+  type MotionConfigValue,
+} from "@/lib/motion-techniques";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -76,6 +82,16 @@ function Home() {
   const [history, setHistory] = useState<HistoryRow[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
+  const [motionByMode, setMotionByMode] = useState<Record<"single" | "frames" | "refs", MotionConfigValue>>({
+    single: { ...DEFAULT_MOTION },
+    frames: { ...DEFAULT_MOTION },
+    refs: { ...DEFAULT_MOTION },
+  });
+  const setMotion = useCallback(
+    (m: "single" | "frames" | "refs", v: MotionConfigValue) =>
+      setMotionByMode((prev) => ({ ...prev, [m]: v })),
+    [],
+  );
   const inputRef = useRef<HTMLInputElement>(null);
 
 
