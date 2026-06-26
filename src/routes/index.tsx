@@ -349,6 +349,56 @@ function Home() {
                         onClear={() => setEndFrame(null)}
                       />
                     </div>
+                    <div className="space-y-2 pt-1">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-medium text-foreground/80">
+                          Tool presets
+                        </label>
+                        <span className="text-[11px] text-muted-foreground">
+                          Optimized strength + crossfade per platform
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {(
+                          [
+                            { id: "runway", label: "Runway", s: 65, c: 40, hint: "Gen-3 smooth morph" },
+                            { id: "pika", label: "Pika", s: 45, c: 20, hint: "Hold then snap" },
+                            { id: "sora", label: "Sora", s: 75, c: 50, hint: "Cinematic continuous" },
+                            { id: "veo", label: "Veo", s: 70, c: 45, hint: "High-fidelity blend" },
+                            { id: "kling", label: "Kling", s: 80, c: 60, hint: "Long morph crossfade" },
+                            { id: "seedance", label: "Seedance", s: 55, c: 25, hint: "Punchy motion" },
+                          ] as const
+                        ).map((p) => {
+                          const active =
+                            interpStrength === p.s && crossfadePct === p.c;
+                          return (
+                            <button
+                              key={p.id}
+                              type="button"
+                              title={p.hint}
+                              onClick={() => {
+                                setInterpStrength(p.s);
+                                setCrossfadePct(p.c);
+                                setSelectedTools((prev) =>
+                                  prev.includes(p.id) ? prev : [...prev, p.id],
+                                );
+                              }}
+                              className={
+                                "px-3 py-1.5 rounded-full border text-xs transition " +
+                                (active
+                                  ? "bg-primary text-primary-foreground border-primary"
+                                  : "border-border/60 hover:border-primary/60 hover:bg-primary/10 text-foreground/80")
+                              }
+                            >
+                              {p.label}
+                              <span className="ml-1.5 opacity-60 tabular-nums">
+                                {p.s}/{p.c}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                     <div className="grid sm:grid-cols-2 gap-4 pt-1">
                       <div className="space-y-2">
                         <div className="flex items-center justify-between text-xs">
