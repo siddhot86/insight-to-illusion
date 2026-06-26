@@ -277,7 +277,7 @@ export const Route = createFileRoute("/api/analyze")({
               messages: [
                 {
                   role: "system",
-                  content: buildSystemPrompt(selectedTools, mode, referenceImages.length, interpolation),
+                  content: buildSystemPrompt(selectedTools, mode, referenceImages.length, interpolation, motion),
                 },
                 { role: "user", content: userContent },
               ],
