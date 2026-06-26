@@ -165,8 +165,13 @@ export const Route = createFileRoute("/api/analyze")({
                 mode?: unknown;
                 tools?: unknown;
                 interpolation?: unknown;
+                motion?: unknown;
               }
             | null;
+          const motion =
+            typeof body?.motion === "string" && body.motion.trim().length > 0
+              ? body.motion.trim().slice(0, 600)
+              : undefined;
           const imageDataUrl = body?.imageDataUrl;
           const rawTools = Array.isArray(body?.tools) ? (body!.tools as unknown[]) : [];
           const tools = rawTools.filter((t): t is ToolId =>
