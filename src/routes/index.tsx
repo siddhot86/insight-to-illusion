@@ -182,6 +182,9 @@ function Home() {
             mode === "frames"
               ? { strength: interpStrength, crossfade: crossfadePct }
               : undefined,
+          motion: describeMotion(motionByMode[mode]) ?? undefined,
+          motionConfig:
+            motionByMode[mode].techniqueId !== "none" ? motionByMode[mode] : undefined,
         }),
 
       });
