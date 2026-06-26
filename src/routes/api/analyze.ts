@@ -43,11 +43,15 @@ function buildSystemPrompt(
   mode: "single" | "frames" | "refs",
   refCount: number,
   interp?: { strength: number; crossfade: number },
+  motion?: string,
 ): string {
   const platformSchema = tools.map((t) => `    "${t}": string`).join(",\n");
   const guidance = tools.map((t) => `- ${t}: ${TOOL_GUIDE[t]}`).join("\n");
   const interpLine = interp
     ? `\nInterpolation strength: ${interp.strength}/100 (0 = hold start then snap, 50 = smooth morph preserving identity, 100 = aggressive continuous warp). Crossfade timing: ${interp.crossfade}% of shot duration (0 = hard cut at midpoint, 25 = brief late blend, 50 = balanced crossfade through the middle, 100 = blend across the whole shot). Reflect both values in the camera_movement, character_motion, lighting_continuity, transition, and every platform_optimized prompt — use concrete language like "slow morph", "hard cut", "long ${interp.crossfade}% crossfade", "${interp.strength}% interpolation blend".`
+    : "";
+  const motionLine = motion
+    ? `\n\nUSER-SPECIFIED MOTION & CAMERA DIRECTIVE: ${motion}\nThis directive OVERRIDES any default camera choice. Embed it explicitly in camera_movement, main_prompt, and every platform_optimized prompt using each tool's preferred syntax. Honor direction, intensity, duration, and easing when provided.`
     : "";
   const modeBlock =
     mode === "frames"
@@ -55,7 +59,7 @@ function buildSystemPrompt(
       : mode === "refs"
         ? `\n\nMULTI-REFERENCE MODE: The FIRST image is the primary scene. The following ${refCount} image(s) are REFERENCE images for character likeness, style, wardrobe, location, or props that MUST remain consistent. Fuse identifying details from the references into character descriptions and character_consistency_guidelines. Every prompt must explicitly preserve these references. Add a "reference_notes" string inside video_prompt listing what each reference contributes.`
         : "";
-  return `You are an expert cinematographer and AI video prompt engineer. Analyze the provided scene image(s) with extreme detail and produce structured output for the selected AI video generation tools.${modeBlock}
+  return `You are an expert cinematographer and AI video prompt engineer. Analyze the provided scene image(s) with extreme detail and produce structured output for the selected AI video generation tools.${modeBlock}${motionLine}
 
 Return ONLY valid JSON matching this exact schema:
 {
@@ -161,8 +165,13 @@ export const Route = createFileRoute("/api/analyze")({
                 mode?: unknown;
                 tools?: unknown;
                 interpolation?: unknown;
+                motion?: unknown;
               }
             | null;
+          const motion =
+            typeof body?.motion === "string" && body.motion.trim().length > 0
+              ? body.motion.trim().slice(0, 600)
+              : undefined;
           const imageDataUrl = body?.imageDataUrl;
           const rawTools = Array.isArray(body?.tools) ? (body!.tools as unknown[]) : [];
           const tools = rawTools.filter((t): t is ToolId =>
@@ -268,7 +277,7 @@ export const Route = createFileRoute("/api/analyze")({
               messages: [
                 {
                   role: "system",
-                  content: buildSystemPrompt(selectedTools, mode, referenceImages.length, interpolation),
+                  content: buildSystemPrompt(selectedTools, mode, referenceImages.length, interpolation, motion),
                 },
                 { role: "user", content: userContent },
               ],
