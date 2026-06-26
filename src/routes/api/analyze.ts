@@ -160,6 +160,7 @@ export const Route = createFileRoute("/api/analyze")({
                 referenceImages?: unknown;
                 mode?: unknown;
                 tools?: unknown;
+                interpolation?: unknown;
               }
             | null;
           const imageDataUrl = body?.imageDataUrl;
@@ -171,6 +172,21 @@ export const Route = createFileRoute("/api/analyze")({
             tools.length > 0 ? Array.from(new Set(tools)) : ["runway", "pika", "sora", "kling"];
           const mode: "single" | "frames" | "refs" =
             body?.mode === "frames" || body?.mode === "refs" ? body.mode : "single";
+          const clamp = (n: unknown, d: number) => {
+            const v = typeof n === "number" && Number.isFinite(n) ? n : d;
+            return Math.max(0, Math.min(100, Math.round(v)));
+          };
+          const rawInterp =
+            body?.interpolation && typeof body.interpolation === "object"
+              ? (body.interpolation as { strength?: unknown; crossfade?: unknown })
+              : null;
+          const interpolation =
+            mode === "frames"
+              ? {
+                  strength: clamp(rawInterp?.strength, 60),
+                  crossfade: clamp(rawInterp?.crossfade, 25),
+                }
+              : undefined;
 
           const validateImage = (val: unknown): string | { error: string; status: number } => {
             if (typeof val !== "string" || val.length === 0)
