@@ -337,6 +337,11 @@ function Home() {
                       readFile={readFile}
                       label="Drop a scene image"
                     />
+                    <MotionConfig
+                      sectionLabel="Single scene"
+                      value={motionByMode.single}
+                      onChange={(v) => setMotion("single", v)}
+                    />
                   </TabsContent>
 
                   <TabsContent value="frames" className="space-y-4 mt-4">
@@ -470,6 +475,11 @@ function Home() {
                     <p className="text-xs text-muted-foreground">
                       The video will be prompted to begin at the start frame and land on the end frame.
                     </p>
+                    <MotionConfig
+                      sectionLabel="Start / End"
+                      value={motionByMode.frames}
+                      onChange={(v) => setMotion("frames", v)}
+                    />
                   </TabsContent>
 
                   <TabsContent value="refs" className="space-y-4 mt-4">
