@@ -68,6 +68,8 @@ function Home() {
   const [endFrame, setEndFrame] = useState<string | null>(null);
   const [refImages, setRefImages] = useState<string[]>([]);
   const [mode, setMode] = useState<"single" | "frames" | "refs">("single");
+  const [interpStrength, setInterpStrength] = useState<number>(60);
+  const [crossfadePct, setCrossfadePct] = useState<number>(25);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [view, setView] = useState<"new" | "history">("new");
