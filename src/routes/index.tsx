@@ -184,7 +184,9 @@ function Home() {
               : undefined,
           motion: describeMotion(motionByMode[mode]) ?? undefined,
           motionConfig:
-            motionByMode[mode].techniqueId !== "none" ? motionByMode[mode] : undefined,
+            Array.isArray(motionByMode[mode]) && motionByMode[mode].length > 0
+              ? motionByMode[mode]
+              : undefined,
         }),
 
       });
