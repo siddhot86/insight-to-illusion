@@ -256,14 +256,25 @@ function EntryCard({
             <div className="text-xs font-medium text-foreground/90 truncate">
               {technique.label}
             </div>
-            <button
-              type="button"
-              onClick={onRemove}
-              className="text-muted-foreground hover:text-destructive p-0.5"
-              aria-label="Remove technique"
-            >
-              <X className="size-3.5" />
-            </button>
+            <div className="flex items-center gap-0.5">
+              <button
+                type="button"
+                onClick={() => setFullscreen(true)}
+                className="text-muted-foreground hover:text-primary p-0.5"
+                aria-label="Open full-screen preview"
+                title="Full-screen preview"
+              >
+                <Maximize2 className="size-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={onRemove}
+                className="text-muted-foreground hover:text-destructive p-0.5"
+                aria-label="Remove technique"
+              >
+                <X className="size-3.5" />
+              </button>
+            </div>
           </div>
           <p className="text-[10.5px] text-muted-foreground leading-snug">
             {technique.description}
