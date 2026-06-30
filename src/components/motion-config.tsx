@@ -228,6 +228,7 @@ function EntryCard({
   onChange: (patch: Partial<MotionEntry>) => void;
   onRemove: () => void;
 }) {
+  const [fullscreen, setFullscreen] = useState(false);
   return (
     <div className="rounded-md border border-border/60 bg-background/40 p-2.5 space-y-2">
       <div className="flex items-start gap-2">
@@ -235,8 +236,10 @@ function EntryCard({
           <HoverCardTrigger asChild>
             <button
               type="button"
-              className="shrink-0 rounded-md ring-1 ring-transparent hover:ring-primary/50 transition cursor-help"
-              aria-label={`Preview ${technique.label}`}
+              onClick={() => setFullscreen(true)}
+              className="shrink-0 rounded-md ring-1 ring-transparent hover:ring-primary/50 transition cursor-zoom-in"
+              aria-label={`Preview ${technique.label} full screen`}
+            >
             >
               <MotionPreview techniqueId={technique.id} size={44} />
             </button>
