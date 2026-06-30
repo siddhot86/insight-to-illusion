@@ -10,7 +10,14 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
-import { Clapperboard, Plus, X, Info } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Clapperboard, Plus, X, Info, Maximize2 } from "lucide-react";
 import {
   EASING_PRESETS,
   MOTION_CATEGORIES,
@@ -221,6 +228,7 @@ function EntryCard({
   onChange: (patch: Partial<MotionEntry>) => void;
   onRemove: () => void;
 }) {
+  const [fullscreen, setFullscreen] = useState(false);
   return (
     <div className="rounded-md border border-border/60 bg-background/40 p-2.5 space-y-2">
       <div className="flex items-start gap-2">
@@ -228,8 +236,9 @@ function EntryCard({
           <HoverCardTrigger asChild>
             <button
               type="button"
-              className="shrink-0 rounded-md ring-1 ring-transparent hover:ring-primary/50 transition cursor-help"
-              aria-label={`Preview ${technique.label}`}
+              onClick={() => setFullscreen(true)}
+              className="shrink-0 rounded-md ring-1 ring-transparent hover:ring-primary/50 transition cursor-zoom-in"
+              aria-label={`Preview ${technique.label} full screen`}
             >
               <MotionPreview techniqueId={technique.id} size={44} />
             </button>
@@ -247,14 +256,25 @@ function EntryCard({
             <div className="text-xs font-medium text-foreground/90 truncate">
               {technique.label}
             </div>
-            <button
-              type="button"
-              onClick={onRemove}
-              className="text-muted-foreground hover:text-destructive p-0.5"
-              aria-label="Remove technique"
-            >
-              <X className="size-3.5" />
-            </button>
+            <div className="flex items-center gap-0.5">
+              <button
+                type="button"
+                onClick={() => setFullscreen(true)}
+                className="text-muted-foreground hover:text-primary p-0.5"
+                aria-label="Open full-screen preview"
+                title="Full-screen preview"
+              >
+                <Maximize2 className="size-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={onRemove}
+                className="text-muted-foreground hover:text-destructive p-0.5"
+                aria-label="Remove technique"
+              >
+                <X className="size-3.5" />
+              </button>
+            </div>
           </div>
           <p className="text-[10.5px] text-muted-foreground leading-snug">
             {technique.description}
@@ -329,6 +349,35 @@ function EntryCard({
           </Select>
         </div>
       )}
+
+      <Dialog open={fullscreen} onOpenChange={setFullscreen}>
+        <DialogContent className="max-w-[min(96vw,1100px)] w-full p-0 overflow-hidden bg-background">
+          <DialogHeader className="px-6 pt-5 pb-2">
+            <DialogTitle className="flex items-center gap-2">
+              <Clapperboard className="size-4 text-primary" />
+              {technique.label}
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              {technique.description}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="px-6 pb-6">
+            <div className="rounded-lg overflow-hidden border border-border/60">
+              <div style={{ aspectRatio: "16 / 9" }} className="w-full">
+                <div className="mp-stage h-full w-full" aria-hidden>
+                  <div className={`mp-frame mp-${technique.id}`}>
+                    <span className="mp-subject" />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <p className="mt-3 text-[11px] text-muted-foreground">
+              Looping preview — close this dialog to edit direction, intensity,
+              duration, or easing for this technique.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
