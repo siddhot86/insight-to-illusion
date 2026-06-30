@@ -240,7 +240,6 @@ function EntryCard({
               className="shrink-0 rounded-md ring-1 ring-transparent hover:ring-primary/50 transition cursor-zoom-in"
               aria-label={`Preview ${technique.label} full screen`}
             >
-            >
               <MotionPreview techniqueId={technique.id} size={44} />
             </button>
           </HoverCardTrigger>
