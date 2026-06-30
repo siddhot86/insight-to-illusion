@@ -9,6 +9,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Clapperboard, Plus, X, Info } from "lucide-react";
 import {
   EASING_PRESETS,
@@ -223,9 +224,24 @@ function EntryCard({
   return (
     <div className="rounded-md border border-border/60 bg-background/40 p-2.5 space-y-2">
       <div className="flex items-start gap-2">
-        <div className="shrink-0">
-          <MotionPreview techniqueId={technique.id} size={44} />
-        </div>
+        <HoverCard openDelay={120} closeDelay={80}>
+          <HoverCardTrigger asChild>
+            <button
+              type="button"
+              className="shrink-0 rounded-md ring-1 ring-transparent hover:ring-primary/50 transition cursor-help"
+              aria-label={`Preview ${technique.label}`}
+            >
+              <MotionPreview techniqueId={technique.id} size={44} />
+            </button>
+          </HoverCardTrigger>
+          <HoverCardContent side="right" align="start" className="w-64 p-3 space-y-2">
+            <MotionPreview techniqueId={technique.id} size={220} />
+            <div className="text-xs font-medium text-foreground/90">{technique.label}</div>
+            <p className="text-[11px] text-muted-foreground leading-snug">
+              {technique.description}
+            </p>
+          </HoverCardContent>
+        </HoverCard>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
             <div className="text-xs font-medium text-foreground/90 truncate">
