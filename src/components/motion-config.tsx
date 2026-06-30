@@ -349,6 +349,35 @@ function EntryCard({
           </Select>
         </div>
       )}
+
+      <Dialog open={fullscreen} onOpenChange={setFullscreen}>
+        <DialogContent className="max-w-[min(96vw,1100px)] w-full p-0 overflow-hidden bg-background">
+          <DialogHeader className="px-6 pt-5 pb-2">
+            <DialogTitle className="flex items-center gap-2">
+              <Clapperboard className="size-4 text-primary" />
+              {technique.label}
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              {technique.description}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="px-6 pb-6">
+            <div className="rounded-lg overflow-hidden border border-border/60">
+              <div style={{ aspectRatio: "16 / 9" }} className="w-full">
+                <div className="mp-stage h-full w-full" aria-hidden>
+                  <div className={`mp-frame mp-${technique.id}`}>
+                    <span className="mp-subject" />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <p className="mt-3 text-[11px] text-muted-foreground">
+              Looping preview — close this dialog to edit direction, intensity,
+              duration, or easing for this technique.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
