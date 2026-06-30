@@ -428,9 +428,9 @@ function MotionPreview({ techniqueId, size = 120 }: { techniqueId: string; size?
 function PreviewStyles() {
   return (
     <style>{`
-.mp-stage{position:relative;border-radius:6px;background:linear-gradient(135deg,hsl(var(--muted)/0.6),hsl(var(--muted)/0.2));overflow:hidden;border:1px solid hsl(var(--border)/0.6)}
+.mp-stage{position:relative;border-radius:6px;background:linear-gradient(135deg,color-mix(in oklab,var(--muted) 60%,transparent),color-mix(in oklab,var(--muted) 20%,transparent));overflow:hidden;border:1px solid var(--border)}
 .mp-frame{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;transform-origin:center}
-.mp-subject{width:22%;aspect-ratio:1;background:hsl(var(--primary));border-radius:4px;box-shadow:0 0 12px hsl(var(--primary)/0.45);display:block}
+.mp-subject{width:22%;aspect-ratio:1;background:var(--primary);border-radius:4px;box-shadow:0 0 12px color-mix(in oklab,var(--primary) 45%,transparent);display:block}
 @keyframes mp-panH{0%,100%{transform:translateX(-25%)}50%{transform:translateX(25%)}}
 @keyframes mp-panV{0%,100%{transform:translateY(-25%)}50%{transform:translateY(25%)}}
 @keyframes mp-dolly{0%,100%{transform:scale(0.85)}50%{transform:scale(1.15)}}
